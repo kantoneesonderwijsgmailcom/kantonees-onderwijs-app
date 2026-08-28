@@ -196,8 +196,9 @@ def analyze_speech_with_gemini(audio_file, expected_text):
         """
         
         # Call Gemini with audio file
+        mime_type = getattr(audio_file, "type", "audio/wav")
         response = model.generate_content([
-            {"mime_type": audio_file.type, "data": audio_bytes},
+            {"mime_type": mime_type, "data": audio_bytes},
             prompt
         ])
         
@@ -359,7 +360,18 @@ if selected_test == "Toets spreektaal":
     for i, s in enumerate(sentences):
         st.info(f"**Zin {i+1}:** {s}")
         
-    audio_file = st.file_uploader("Upload geluidsopname van de leerling (WAV, MP3, M4A):", type=["wav", "mp3", "m4a"])
+    # Select audio input source
+    audio_source = st.radio(
+        "Kies invoermethode voor audio:", 
+        ["🎤 Direct inspreken via microfoon (Aanbevolen)", "📂 Geluidsbestand uploaden (.wav, .mp3, .m4a)"], 
+        horizontal=True
+    )
+    
+    audio_file = None
+    if audio_source == "🎤 Direct inspreken via microfoon (Aanbevolen)":
+        audio_file = st.audio_input("Klik op de rode knop en spreek de zin(nen) in:")
+    else:
+        audio_file = st.file_uploader("Upload geluidsopname van de leerling (WAV, MP3, M4A):", type=["wav", "mp3", "m4a"])
     
     if app_mode == "🔌 Productie (Live APIs)":
         if audio_file is not None:
