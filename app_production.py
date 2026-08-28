@@ -16,7 +16,8 @@ st.set_page_config(
 # Optional Imports for Production Mode
 try:
     import gspread
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
     production_libs_available = True
 except ImportError:
     production_libs_available = False
@@ -170,8 +171,7 @@ def analyze_speech_with_gemini(audio_file, expected_text):
         if "gemini_api_key" not in st.secrets:
             return False, "Gemini API key niet gevonden in Secrets."
         
-        genai.configure(api_key=st.secrets["gemini_api_key"])
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        client = genai.Client(api_key=st.secrets["gemini_api_key"])
         
         # Read audio bytes
         audio_bytes = audio_file.read()
@@ -196,11 +196,16 @@ def analyze_speech_with_gemini(audio_file, expected_text):
         """
         
         # Call Gemini with audio file
-        mime_type = getattr(audio_file, "type", "audio/wav")
-        response = model.generate_content([
-            {"mime_type": mime_type, "data": audio_bytes},
-            prompt
-        ])
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=[
+                types.Part.from_bytes(
+                    data=audio_bytes,
+                    mime_type=audio_file.type,
+                ),
+                prompt
+            ]
+        )
         
         # Parse JSON from response
         text_response = response.text
@@ -222,8 +227,7 @@ def analyze_image_with_gemini(image_file):
         if "gemini_api_key" not in st.secrets:
             return False, "Gemini API key niet gevonden in Secrets."
         
-        genai.configure(api_key=st.secrets["gemini_api_key"])
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        client = genai.Client(api_key=st.secrets["gemini_api_key"])
         
         # Load PIL image
         img = Image.open(image_file)
@@ -255,7 +259,10 @@ def analyze_image_with_gemini(image_file):
         }
         """
         
-        response = model.generate_content([img, prompt])
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=[img, prompt]
+        )
         
         text_response = response.text
         if "```json" in text_response:
@@ -360,18 +367,7 @@ if selected_test == "Toets spreektaal":
     for i, s in enumerate(sentences):
         st.info(f"**Zin {i+1}:** {s}")
         
-    # Select audio input source
-    audio_source = st.radio(
-        "Kies invoermethode voor audio:", 
-        ["🎤 Direct inspreken via microfoon (Aanbevolen)", "📂 Geluidsbestand uploaden (.wav, .mp3, .m4a)"], 
-        horizontal=True
-    )
-    
-    audio_file = None
-    if audio_source == "🎤 Direct inspreken via microfoon (Aanbevolen)":
-        audio_file = st.audio_input("Klik op de rode knop en spreek de zin(nen) in:")
-    else:
-        audio_file = st.file_uploader("Upload geluidsopname van de leerling (WAV, MP3, M4A):", type=["wav", "mp3", "m4a"])
+    audio_file = st.file_uploader("Upload geluidsopname van de leerling (WAV, MP3, M4A):", type=["wav", "mp3", "m4a"])
     
     if app_mode == "🔌 Productie (Live APIs)":
         if audio_file is not None:
