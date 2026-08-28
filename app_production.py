@@ -367,7 +367,17 @@ if selected_test == "Toets spreektaal":
     for i, s in enumerate(sentences):
         st.info(f"**Zin {i+1}:** {s}")
         
-    audio_file = st.file_uploader("Upload geluidsopname van de leerling (WAV, MP3, M4A):", type=["wav", "mp3", "m4a"])
+    # Keuzemenu voor invoermethode (Microfoon of Bestands-upload)
+    audio_invoermethode = st.radio(
+        "Kies invoermethode spraak:",
+        ["🎤 Direct inspreken via microfoon (Aanbevolen)", "📂 Geluidsbestand uploaden (WAV, MP3, M4A)"],
+        horizontal=True
+    )
+    
+    if audio_invoermethode == "🎤 Direct inspreken via microfoon (Aanbevolen)":
+        audio_file = st.audio_input("Klik op de rode knop om de uitspraak van de leerling op te nemen:")
+    else:
+        audio_file = st.file_uploader("Upload geluidsopname van de leerling (WAV, MP3, M4A):", type=["wav", "mp3", "m4a"])
     
     if app_mode == "🔌 Productie (Live APIs)":
         if audio_file is not None:
@@ -407,7 +417,7 @@ if selected_test == "Toets spreektaal":
                     else:
                         st.error(res)
         else:
-            st.warning("Upload eerst een audiobestand om de live spraaktoets te starten.")
+            st.warning("Upload of neem eerst een audiobestand op om de live spraaktoets te starten.")
             
     else:  # Demo / Simulated Mode
         simulated_match = st.slider("Simuleer Uitspraak Match (%):", 50, 100, 92)
